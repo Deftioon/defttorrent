@@ -1,4 +1,5 @@
 use core::fmt;
+use sha1::{Sha1, Digest};
 
 #[derive(Debug, PartialEq)]
 pub enum BencodeValue {
@@ -96,12 +97,40 @@ impl<'a> BencodeParser<'a> {
         self.consume_byte()?; // Consume 'e'
         Ok(BencodeValue::Dict(dict))
     }
+
+    //FIXME: THIS NEVER ENDS
+    pub fn find_info_position(&mut self, start_pos: usize) -> Result<usize, &'static str> {
+        self.pos = start_pos;
+        while self.pos < self.data.len() {
+            if let Ok(BencodeValue::String(key)) = self.parse_string() {
+                if key == b"info" {
+                    let value_start = self.pos;
+                    self.parse()?; // Parse the value to advance past it
+                    return Ok(value_start);
+                } else {
+                    // Parse the corresponding value to move past the key-value pair
+                    self.parse().ok(); // Ignore parsing errors, just advance
+                }
+            } else {
+                // Skip invalid key and its value
+                self.parse().ok();
+            }
+        }
+        Err("Info key not found")
+    }
+
+    pub fn find_info_end(&mut self, start_pos: usize) -> Result<usize, &'static str> {
+        self.pos = start_pos;
+        self.parse()?; // Parse the info dict to advance pos to its end
+        Ok(self.pos)
+    }
 }
 
 #[derive(Debug)]
 pub struct Torrent {
     pub announce: String,
     pub info: TorrentInfo,
+    pub info_hash: [u8; 20],
     pub comment: Option<String>,
 }
 
@@ -121,7 +150,7 @@ pub struct TorrentFile {
 }
 
 impl Torrent {
-    pub fn from_bencode(bencode: &BencodeValue) -> Result<Self, &'static str> {
+    pub fn from_bencode(bencode: &BencodeValue, data: &[u8]) -> Result<Self, &'static str> {
         let dict = match bencode {
             BencodeValue::Dict(d) => d,
             _ => return Err("Root must be a dictionary"),
@@ -130,19 +159,38 @@ impl Torrent {
         let mut announce = None;
         let mut info = None;
         let mut comment = None;
+        let mut info_hash = [0u8; 20];
 
         for (key, value) in dict {
             match key.as_slice() {
                 b"announce" => announce = Some(Torrent::parse_string(value)?),
-                b"info" => info = Some(TorrentInfo::from_bencode(value)?),
+                b"info" => {
+                    // Calculate info_hash by finding the byte span of the info dict
+                    let (start, end) = {
+                        let mut parser = BencodeParser::new(data);
+                        parser.parse().ok(); // Parse root dict
+                        // Assuming the root is a dict, find the 'info' key's value position
+                        let mut pos = 1; // Skip 'd' at position 0
+                        let info_start = parser.find_info_position(pos).unwrap();
+                        let info_end = parser.find_info_end(info_start).unwrap();
+                        (info_start, info_end)
+                    };
+                    let info_bytes = &data[start..end];
+                    let mut hasher = Sha1::new();
+                    hasher.update(info_bytes);
+                    info_hash.copy_from_slice(&hasher.finalize());
+
+                    info = Some(TorrentInfo::from_bencode(value)?);
+                },
                 b"comment" => comment = Some(Torrent::parse_string(value)?),
-                _ => {} // Ignore unknown keys
+                _ => {}
             }
         }
 
         Ok(Torrent {
             announce: announce.ok_or("Missing announce")?,
             info: info.ok_or("Missing info")?,
+            info_hash,
             comment,
         })
     }
@@ -270,6 +318,7 @@ impl fmt::Display for Torrent {
         write!(f, "Torrent {{\n")?;
         write!(f, "  announce: {}\n", self.announce)?;
         write!(f, "  info: {}\n", self.info)?;
+        write!(f, "  info_hash: {:02x?}\n", self.info_hash)?;
         if let Some(comment) = &self.comment {
             write!(f, "  comment: {}\n", comment)?;
         }

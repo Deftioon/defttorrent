@@ -1,5 +1,5 @@
 use std::net::{SocketAddr, ToSocketAddrs};
-use std::io;
+use std::io::{self, Read};
 use tokio::net::UdpSocket;
 use tokio::time::{timeout, Duration};
 use std::error::Error;
@@ -64,21 +64,25 @@ pub async fn request(url: &str, info_hash: &[u8; 20]) -> io::Result<Vec<SocketAd
 }
 
 async fn connect(socket: &UdpSocket, addr: &str) -> io::Result<u64> {
-    let mut payload = Vec::with_capacity(16);
+    // let mut payload = Vec::with_capacity(16);
     let sent_transaction_id = rand::random::<u32>();
-    payload.extend(0x41727101980u64.to_be_bytes());
-    payload.extend(0u32.to_be_bytes()); // action = connect
-    payload.extend(sent_transaction_id.to_be_bytes());
+    // payload.extend(0x41727101980u64.to_be_bytes());
+    // payload.extend(0u32.to_be_bytes()); // action = connect
+    // payload.extend(sent_transaction_id.to_be_bytes());
+    let mut payload = [0u8; 16];
+    payload[..8].copy_from_slice(&0x41727101980u64.to_be_bytes());
+    payload[8..12].copy_from_slice(&0u32.to_be_bytes()); // action = connect
+    payload[12..16].copy_from_slice(&sent_transaction_id.to_be_bytes());
 
     println!("Sending connect payload to: {:?}", addr);
     socket.send_to(&payload, addr).await?;
     println!("Sent connect payload: {:?}", payload);
 
-    let mut buf = [0u8; 16];
-    let (amt, _) = timeout(Duration::from_secs(5), socket.recv_from(&mut buf)).await
+    let mut buf = [0u8; 1024];
+    let (amt, _) = timeout(Duration::from_secs(10), socket.recv_from(&mut buf)).await
         .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "Connect timeout"))??;
     println!("Received connect response: {:?}", &buf[..amt]);
-    
+
     if amt != 16 || u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) != 0 {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid connect response"));
     }
@@ -87,7 +91,7 @@ async fn connect(socket: &UdpSocket, addr: &str) -> io::Result<u64> {
     if received_transaction_id != sent_transaction_id {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "Transaction ID mismatch"));
     }
-
+    // Returns connection ID
     Ok(u64::from_be_bytes([buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]]))
 }
 
@@ -97,6 +101,8 @@ async fn announce(
     addr: &str,
     info_hash: &[u8; 20],
 ) -> io::Result<Vec<SocketAddr>> {
+
+    println!("Constructing announce payload");
     let mut payload = Vec::with_capacity(98);
     payload.extend(conn_id.to_be_bytes());
     payload.extend(1u32.to_be_bytes()); // action (1 = announce)
@@ -116,6 +122,7 @@ async fn announce(
     payload.extend((-1i32).to_be_bytes()); // num_want (-1 = default)
     payload.extend(6881u16.to_be_bytes()); // port
 
+    println!("Sending announce payload to: {:?}", addr);
     socket.send_to(&payload, addr).await?;
 
     let mut buf = [0u8; 2048];
@@ -126,6 +133,7 @@ async fn announce(
         return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid announce response"));
     }
 
+    println!("Received announce response");
     parse_peers(&buf[20..amt])
 }
 

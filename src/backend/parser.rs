@@ -166,6 +166,7 @@ impl Torrent {
                 b"announce" => announce = Some(Torrent::parse_string(value)?),
                 b"info" => {
                     // Calculate info_hash by finding the byte span of the info dict
+                    println!("Value: {:?}", value);
                     let (start, end) = {
                         let mut parser = BencodeParser::new(data);
                         parser.parse().ok(); // Parse root dict
@@ -177,8 +178,11 @@ impl Torrent {
                     };
                     let info_bytes = &data[start..end];
                     let mut hasher = Sha1::new();
+                    let info_hasher = hasher.clone();
+                    let mut info_hash = [0u8; 20];
                     hasher.update(info_bytes);
                     info_hash.copy_from_slice(&hasher.finalize());
+                    println!("Info hash: {:02x?}", info_hash);
 
                     info = Some(TorrentInfo::from_bencode(value)?);
                 },

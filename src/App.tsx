@@ -1,62 +1,115 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
 import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+import TorrentItem, { Torrent } from "./TorrentItem";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [torrentLink, setTorrentLink] = useState("");
+  const [torrents, setTorrents] = useState<Torrent[]>([]);
+  const [nextId, setNextId] = useState(1);
+  const [darkMode, setDarkMode] = useState(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+  }, [darkMode]);
+
+  async function handleSelectFile() {
+    const selected = await open({
+      filters: [{ name: "Torrent Files", extensions: ["torrent"] }],
+    });
+    if (selected && typeof selected === "string") {
+      setTorrentLink(selected);
+    }
+  }
+
+  function handleAddTorrent(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!torrentLink.trim()) return;
+    const newTorrent: Torrent = {
+      id: nextId,
+      link: torrentLink.trim(),
+      downloaded: 0,
+      full_size: 100, // For demonstration, assume 100 MB
+    };
+    setTorrents([...torrents, newTorrent]);
+    setNextId(nextId + 1);
+    setTorrentLink("");
+  }
+
+  function simulateProgress(id: number) {
+    setTorrents((prev) =>
+      prev.map((torrent) =>
+        torrent.id === id
+          ? {
+              ...torrent,
+              downloaded:
+                torrent.downloaded < torrent.full_size
+                  ? Math.min(torrent.downloaded + 10, torrent.full_size)
+                  : torrent.full_size,
+            }
+          : torrent
+      )
+    );
+  }
+
+  function handleCompleteTorrent(id: number) {
+    setTorrents((prev) => prev.filter((torrent) => torrent.id !== id));
   }
 
   return (
-    <main className="container">
-      <h1>Welcome to React</h1>
+    <div className={`app-container ${darkMode ? "dark-mode" : ""}`}>
+      {/* Top Bar */}
+      <header className="top-bar">
+        <img src={reactLogo} className="logo" alt="Logo" />
+        <form className="torrent-form" onSubmit={handleAddTorrent}>
+          <input
+            type="text"
+            placeholder="Add torrent/magnet link or select file..."
+            value={torrentLink}
+            onChange={(e) => setTorrentLink(e.target.value)}
+          />
+          <button type="button" onClick={handleSelectFile}>
+            Select File
+          </button>
+          <button type="submit">Add Torrent</button>
+        </form>
+      </header>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-      <h2>Greet someone</h2>
-      <div className="column?">
-        <p>Enter a name and click the button to greet someone.</p>
-      </div>
+      {/* Main Content */}
+      <main className="main-content">
+        <h2>Your Torrents</h2>
+        <div className="torrents-container">
+          {torrents.length === 0 ? (
+            <p>No torrents added yet</p>
+          ) : (
+            <ul className="torrent-list">
+              {torrents.map((torrent) => (
+                <TorrentItem
+                  key={torrent.id}
+                  torrent={torrent}
+                  onSimulateProgress={simulateProgress}
+                  onComplete={handleCompleteTorrent}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </main>
 
-      <ul>
-        <li>Install the Tauri CLI: <code>npm install -g @tauri-apps/cli</code></li>
-        <li>Create a new Tauri project: <code>tauri init</code></li>
-        <li>Run your Tauri project: <code>tauri dev</code></li>
-      </ul>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
+      {/* Floating dark mode toggle */}
+      <button
+        type="button"
+        onClick={() => setDarkMode((prev) => !prev)}
+        className="dark-mode-toggle"
       >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-
-      <a href="./SecondPage.tsx">a</a>
-    </main>
+        {darkMode ? "Light Mode" : "Dark Mode"}
+      </button>
+    </div>
   );
 }
 

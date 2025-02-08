@@ -1,5 +1,5 @@
 use core::fmt;
-use sha1::{Sha1, Digest};
+use sha1::{Digest, Sha1};
 
 #[derive(Debug, PartialEq)]
 pub enum BencodeValue {
@@ -60,7 +60,9 @@ impl<'a> BencodeParser<'a> {
         }
         let len_str = std::str::from_utf8(&self.data[start..self.pos])
             .map_err(|_| "Invalid string length")?;
-        let len = len_str.parse::<usize>().map_err(|_| "Invalid string length")?;
+        let len = len_str
+            .parse::<usize>()
+            .map_err(|_| "Invalid string length")?;
         self.consume_byte()?; // Consume ':'
         let end = self.pos + len;
         if end > self.data.len() {
@@ -139,7 +141,7 @@ pub struct TorrentInfo {
     pub name: String,
     pub piece_length: i64,
     pub pieces: Vec<[u8; 20]>,
-    pub length: Option<i64>,        // For single-file torrents
+    pub length: Option<i64>,             // For single-file torrents
     pub files: Option<Vec<TorrentFile>>, // For multi-file torrents
 }
 
@@ -170,7 +172,7 @@ impl Torrent {
                     let (start, end) = {
                         let mut parser = BencodeParser::new(data);
                         parser.parse().ok(); // Parse root dict
-                        // Assuming the root is a dict, find the 'info' key's value position
+                                             // Assuming the root is a dict, find the 'info' key's value position
                         let mut pos = 1; // Skip 'd' at position 0
                         let info_start = parser.find_info_position(pos).unwrap();
                         let info_end = parser.find_info_end(info_start).unwrap();
@@ -185,7 +187,7 @@ impl Torrent {
                     println!("Info hash: {:02x?}", info_hash);
 
                     info = Some(TorrentInfo::from_bencode(value)?);
-                },
+                }
                 b"comment" => comment = Some(Torrent::parse_string(value)?),
                 _ => {}
             }
@@ -254,7 +256,10 @@ impl TorrentInfo {
             if bytes.len() % 20 != 0 {
                 return Err("Pieces must be a multiple of 20 bytes");
             }
-            Ok(bytes.chunks_exact(20).map(|chunk| chunk.try_into().unwrap()).collect())
+            Ok(bytes
+                .chunks_exact(20)
+                .map(|chunk| chunk.try_into().unwrap())
+                .collect())
         } else {
             Err("Expected pieces string")
         }

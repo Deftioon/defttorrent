@@ -4,7 +4,7 @@
     "": {
       "name": "defttorrent",
       "dependencies": {
-        "@tauri-apps/api": "^2",
+        "@tauri-apps/api": "^2.2.0",
         "@tauri-apps/plugin-opener": "^2",
         "@types/node": "^22.13.1",
         "react": "^18.3.1",

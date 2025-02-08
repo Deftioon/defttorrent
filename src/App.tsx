@@ -1,4 +1,8 @@
+//TODO: THE CONTAINER REACHES TOO FAR DOWN IN BIG LIST OF TORRENTS
+
+
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import reactLogo from "./assets/react.svg";
 import "./App.css";
@@ -9,6 +13,40 @@ function App() {
   const [torrents, setTorrents] = useState<Torrent[]>([]);
   const [nextId, setNextId] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
+
+  // Load settings on mount
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        invoke("console_log", { message: Date.now() + " Loading settings..." });
+        const settingsString = await invoke<string>("load_settings");
+        if (settingsString) {
+          const settings = JSON.parse(settingsString);
+          if (settings.darkMode !== undefined) setDarkMode(settings.darkMode);
+          if (settings.torrents) setTorrents(settings.torrents);
+          if (settings.nextId) setNextId(settings.nextId);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  // Save settings whenever relevant state changes
+  useEffect(() => {
+    async function saveSettings() {
+      try {
+        const settings = { darkMode, torrents, nextId };
+        await invoke("store_settings", { settings: JSON.stringify(settings) });
+        invoke("console_log", { message: Date.now() + " Settings saved!" });
+      } catch (error) {
+        console.error("Failed to save settings:", error);
+        invoke("console_log", { message: "Failed to save settings" });
+      }
+    }
+    saveSettings();
+  }, [darkMode, torrents, nextId]);
 
   useEffect(() => {
     if (darkMode) {
@@ -52,8 +90,8 @@ function App() {
                   ? Math.min(torrent.downloaded + 10, torrent.full_size)
                   : torrent.full_size,
             }
-          : torrent
-      )
+          : torrent,
+      ),
     );
   }
 

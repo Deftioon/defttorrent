@@ -1,6 +1,5 @@
 //TODO: THE CONTAINER REACHES TOO FAR DOWN IN BIG LIST OF TORRENTS
 
-
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -100,7 +99,7 @@ function App() {
   }
 
   return (
-    <div className={`app-container ${darkMode ? "dark-mode" : ""}`}>
+    <div className={`app-container ${darkMode ? "dark-mode" : ""} no-select`}>
       {/* Top Bar */}
       <header className="top-bar">
         <img src={reactLogo} className="logo" alt="Logo" />

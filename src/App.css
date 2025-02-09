@@ -1,3 +1,26 @@
+/* Fonts */
+@font-face {
+    font-family: "Menlo Regular";
+    font-style: normal;
+    font-weight: normal;
+    src: url("./assets/Menlo-Regular.woff") format("woff");
+}
+
+.no-select {
+    -webkit-user-select: none; /* Chrome, Safari, Opera */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Standard syntax */
+    cursor: default;
+}
+
+.no-select .selectable {
+    -webkit-user-select: text; /* Chrome, Safari, Opera */
+    -moz-user-select: text; /* Firefox */
+    -ms-user-select: text; /* Internet Explorer/Edge */
+    user-select: text; /* Standard syntax */
+    cursor: text;
+}
 /* Global Styles */
 body {
     margin: 0;
@@ -137,9 +160,11 @@ body.dark-mode .dark-mode-toggle:hover {
 }
 
 .torrents-container {
+    max-height: calc(100vh - 275px);
     height: 100%;
     overflow-y: auto;
     scroll-padding-right: 10px;
+    border-radius: 10px;
 }
 
 /* Torrent List Styles */
@@ -181,6 +206,16 @@ body.dark-mode .dark-mode-toggle:hover {
     padding: 0.3rem 0.6rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
+}
+
+.torrent-status {
+    margin-top: 10px;
+    padding: 5px;
+    background-color: #000;
+    display: flex;
+    color: #fff;
+    font-family: "Menlo Regular", sans-serif;
+    font-size: 0.75rem;
 }
 
 .torrent-info button:hover {

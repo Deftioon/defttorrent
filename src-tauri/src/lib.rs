@@ -5,9 +5,13 @@ use dirs::config_dir;
 use std::fs;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn torrent_status(id: usize) -> Result<String, String> {
+    println!("Getting torrent status...");
+    // let status = backend::get_torrent_status(id);
+    let status = "Test Message".to_string();
+    Ok(status)
 }
 
 #[tauri::command]
@@ -49,7 +53,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
+            torrent_status,
             store_settings,
             load_settings,
             console_log,

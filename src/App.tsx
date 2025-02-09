@@ -106,7 +106,12 @@ function App() {
 
   return (
     <div className={`app-container no-select ${darkMode ? "dark-mode" : ""}`}>
-      <Sidebar onSelect={(panel) => setActivePanel(panel)} active={activePanel} />
+      <Sidebar 
+        onSelect={(panel) => setActivePanel(panel)} 
+        active={activePanel} 
+        darkMode={darkMode}
+        onToggleTheme={() => setDarkMode((prev) => !prev)}  
+      />
       {/* Top Bar */}
       <header className="top-bar">
         <img src={reactLogo} className="logo" alt="Logo" />
@@ -133,14 +138,14 @@ function App() {
 
       {renderMainPanel()}
 
-      {/* Floating dark mode toggle */}
+      {/* Floating dark mode toggle
       <button
         type="button"
         onClick={() => setDarkMode((prev) => !prev)}
         className="dark-mode-toggle"
       >
         {darkMode ? "Light Mode" : "Dark Mode"}
-      </button>
+      </button> */}
     </div>
   );
 }

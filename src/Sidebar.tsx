@@ -6,9 +6,11 @@ export type Panel = "torrent" | "streaming" | "settings";
 interface SidebarProps {
   onSelect: (panel: Panel) => void;
   active: Panel;
+  darkMode: boolean;
+  onToggleTheme: () => void;
 }
 
-const Sidebar = ({ onSelect, active }: SidebarProps) => {
+const Sidebar = ({ onSelect, active, darkMode, onToggleTheme }: SidebarProps) => {
   const [open, setOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +35,7 @@ const Sidebar = ({ onSelect, active }: SidebarProps) => {
           <div></div>
         </div>
       </div>
+
       <nav className="sidebar-menu">
         <ul>
           <li>
@@ -61,6 +64,27 @@ const Sidebar = ({ onSelect, active }: SidebarProps) => {
           </li>
         </ul>
       </nav>
+
+      {/* New container for theme toggles */}
+      <div className="sidebar-bottom">
+        {/* Mini toggle when collapsed */}
+        {!open && (
+          <div className="theme-toggle-mini">
+            <button onClick={onToggleTheme}>
+              {darkMode ? "🌞" : "🌜"}
+            </button>
+          </div>
+        )}
+
+        {/* Full toggle when expanded */}
+        {open && (
+          <div className="theme-toggle">
+            <button onClick={onToggleTheme}>
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

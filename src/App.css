@@ -38,8 +38,12 @@ body.dark-mode {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    width: 100%;
-    margin: 0 auto;
+    width: 100% - 50px;
+    margin-left: 50px;
+    transition: margin-left 0.3s ease;
+}
+.app-container.sidebar-open {
+    margin-left: 200px;
 }
 
 /* Dark mode overrides on the main container */

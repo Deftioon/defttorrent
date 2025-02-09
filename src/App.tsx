@@ -1,19 +1,23 @@
-//TODO: THE CONTAINER REACHES TOO FAR DOWN IN BIG LIST OF TORRENTS
-
+//// filepath: /home/deftioon/Github/defttorrent/src/App.tsx
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import reactLogo from "./assets/react.svg";
 import "./App.css";
 import TorrentItem, { Torrent } from "./TorrentItem";
+import Sidebar, { Panel } from "./Sidebar";
+import TorrentList from "./TorrentList";
+import Streaming from "./Streaming";
+import Settings from "./Settings";
 
 function App() {
   const [torrentLink, setTorrentLink] = useState("");
   const [torrents, setTorrents] = useState<Torrent[]>([]);
   const [nextId, setNextId] = useState(1);
   const [darkMode, setDarkMode] = useState(false);
+  const [activePanel, setActivePanel] = useState<Panel>("torrent");
 
-  // Load settings on mount
+  // Example saveSettings & loadSettings effects
   useEffect(() => {
     async function loadSettings() {
       try {
@@ -32,7 +36,6 @@ function App() {
     loadSettings();
   }, []);
 
-  // Save settings whenever relevant state changes
   useEffect(() => {
     async function saveSettings() {
       try {
@@ -46,23 +49,6 @@ function App() {
     }
     saveSettings();
   }, [darkMode, torrents, nextId]);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
-  }, [darkMode]);
-
-  async function handleSelectFile() {
-    const selected = await open({
-      filters: [{ name: "Torrent Files", extensions: ["torrent"] }],
-    });
-    if (selected && typeof selected === "string") {
-      setTorrentLink(selected);
-    }
-  }
 
   function handleAddTorrent(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -89,8 +75,8 @@ function App() {
                   ? Math.min(torrent.downloaded + 10, torrent.full_size)
                   : torrent.full_size,
             }
-          : torrent,
-      ),
+          : torrent
+      )
     );
   }
 
@@ -98,8 +84,29 @@ function App() {
     setTorrents((prev) => prev.filter((torrent) => torrent.id !== id));
   }
 
+  // Conditionally render the main panel
+  const renderMainPanel = () => {
+    switch (activePanel) {
+      case "torrent":
+        return (
+          <TorrentList
+            torrents={torrents}
+            simulateProgress={simulateProgress}
+            handleCompleteTorrent={handleCompleteTorrent}
+          />
+        );
+      case "streaming":
+        return <Streaming />;
+      case "settings":
+        return <Settings />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className={`app-container ${darkMode ? "dark-mode" : ""} no-select`}>
+    <div className={`app-container no-select ${darkMode ? "dark-mode" : ""}`}>
+      <Sidebar onSelect={(panel) => setActivePanel(panel)} active={activePanel} />
       {/* Top Bar */}
       <header className="top-bar">
         <img src={reactLogo} className="logo" alt="Logo" />
@@ -110,33 +117,21 @@ function App() {
             value={torrentLink}
             onChange={(e) => setTorrentLink(e.target.value)}
           />
-          <button type="button" onClick={handleSelectFile}>
+          <button type="button" onClick={async () => {
+            const selected = await open({
+              filters: [{ name: "Torrent Files", extensions: ["torrent"] }],
+            });
+            if (selected && typeof selected === "string") {
+              setTorrentLink(selected);
+            }
+          }}>
             Select File
           </button>
           <button type="submit">Add Torrent</button>
         </form>
       </header>
 
-      {/* Main Content */}
-      <main className="main-content">
-        <h2>Your Torrents</h2>
-        <div className="torrents-container">
-          {torrents.length === 0 ? (
-            <p>No torrents added yet</p>
-          ) : (
-            <ul className="torrent-list">
-              {torrents.map((torrent) => (
-                <TorrentItem
-                  key={torrent.id}
-                  torrent={torrent}
-                  onSimulateProgress={simulateProgress}
-                  onComplete={handleCompleteTorrent}
-                />
-              ))}
-            </ul>
-          )}
-        </div>
-      </main>
+      {renderMainPanel()}
 
       {/* Floating dark mode toggle */}
       <button

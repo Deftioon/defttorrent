@@ -50,7 +50,7 @@ pub async fn request(url: &str, info_hash: &[u8; 20]) -> io::Result<Vec<SocketAd
     // Resolve DNS (UDP requires IP, not hostname)
     let addr = format!("{}:{}", host, port)
         .to_socket_addrs()?
-        .next() //TODO: Figure if this line is needed or not
+        .next() //TODO: Figure if this line is needed or not. Might be better to try all announce links instead.
         .ok_or_else(|| io::Error::new(io::ErrorKind::AddrNotAvailable, "DNS lookup failed"))?;
 
     let socket = UdpSocket::bind("0.0.0.0:0").await?;

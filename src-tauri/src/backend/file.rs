@@ -350,3 +350,19 @@ impl fmt::Display for TorrentInfo {
         write!(f, "}}")
     }
 }
+
+pub fn read_torrent_file(file_path: &str) -> Result<Torrent, Box<dyn std::error::Error>> {
+    println!("hi");
+    //TODO: FIXME: The file path might not exist, in that case should show a dialog box
+    //TODO: FIXME: The file path might not be a valid torrent file, in that case should show a dialog box
+    //TODO: FIXME: The path might also be a magnet link instead
+    let data = std::fs::read(file_path)?;
+    println!("hi");
+    let mut parser = BencodeParser::new(&data);
+    println!("hi");
+    let bencode = parser.parse()?;
+    println!("hi");
+    let torrent = Torrent::from_bencode(&bencode, &data)?; // Pass data here
+    println!("hi");
+    Ok(torrent)
+}

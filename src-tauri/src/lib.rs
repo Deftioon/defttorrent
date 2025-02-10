@@ -3,16 +3,11 @@ pub mod requests;
 
 use dirs::config_dir;
 use std::fs;
+use std::sync::Arc;
+use std::sync::Mutex;
+use tauri::State;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-
-#[tauri::command]
-async fn torrent_status(id: usize) -> Result<String, String> {
-    println!("Getting torrent status...");
-    // let status = backend::get_torrent_status(id);
-    let status = "Test Message".to_string();
-    Ok(status)
-}
 
 #[tauri::command]
 async fn store_settings(settings: String) -> Result<(), String> {
@@ -46,9 +41,36 @@ fn console_log(message: String) {
     println!("{}", message);
 }
 
+#[tauri::command]
+fn torrent_status(state: State<AppState>, id: usize) -> String {
+    let mut torrents = state.torrent_list.lock().unwrap();
+    let status = torrents.get_status(&id).clone();
+    status
+}
+
+#[tauri::command]
+fn add_torrent(state: State<AppState>, id: usize, url: String) -> String {
+    let mut torrents = state.torrent_list.lock().unwrap();
+    torrents.push_with_id_and_url(id, url);
+    id.to_string()
+}
+
+#[tauri::command]
+fn remove_torrent(state: State<AppState>, id: usize) {
+    let mut torrents = state.torrent_list.lock().unwrap();
+    torrents.list.remove(&id);
+}
+
+struct AppState {
+    torrent_list: Arc<Mutex<backend::torrentlist::TorrentList>>,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(AppState {
+            torrent_list: Arc::new(Mutex::new(backend::torrentlist::TorrentList::new())),
+        })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
@@ -57,6 +79,8 @@ pub fn run() {
             store_settings,
             load_settings,
             console_log,
+            add_torrent,
+            remove_torrent,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -64,7 +88,7 @@ pub fn run() {
 
 #[tokio::main]
 async fn torrent_main() -> Result<(), Box<dyn std::error::Error>> {
-    let data = backend::read_torrent_file("test2.torrent")?;
+    let data = backend::file::read_torrent_file("test2.torrent")?;
     let info_hash_str = String::from_utf8_lossy(&data.info_hash);
     println!("Torrent file: {:?}", data);
     println!("{}", info_hash_str);

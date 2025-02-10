@@ -53,9 +53,11 @@ function App() {
   function handleAddTorrent(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!torrentLink.trim()) return;
+    let link = torrentLink.trim();
+    invoke("add_torrent", { id: nextId, url: link });
     const newTorrent: Torrent = {
       id: nextId,
-      link: torrentLink.trim(),
+      link: link,
       downloaded: 0,
       full_size: 100, // For demonstration, assume 100 MB
     };
@@ -75,8 +77,8 @@ function App() {
                   ? Math.min(torrent.downloaded + 10, torrent.full_size)
                   : torrent.full_size,
             }
-          : torrent
-      )
+          : torrent,
+      ),
     );
   }
 
@@ -106,11 +108,11 @@ function App() {
 
   return (
     <div className={`app-container no-select ${darkMode ? "dark-mode" : ""}`}>
-      <Sidebar 
-        onSelect={(panel) => setActivePanel(panel)} 
-        active={activePanel} 
+      <Sidebar
+        onSelect={(panel) => setActivePanel(panel)}
+        active={activePanel}
         darkMode={darkMode}
-        onToggleTheme={() => setDarkMode((prev) => !prev)}  
+        onToggleTheme={() => setDarkMode((prev) => !prev)}
       />
       {/* Top Bar */}
       <header className="top-bar">
@@ -122,14 +124,17 @@ function App() {
             value={torrentLink}
             onChange={(e) => setTorrentLink(e.target.value)}
           />
-          <button type="button" onClick={async () => {
-            const selected = await open({
-              filters: [{ name: "Torrent Files", extensions: ["torrent"] }],
-            });
-            if (selected && typeof selected === "string") {
-              setTorrentLink(selected);
-            }
-          }}>
+          <button
+            type="submit"
+            onClick={async () => {
+              const selected = await open({
+                filters: [{ name: "Torrent Files", extensions: ["torrent"] }],
+              });
+              if (selected && typeof selected === "string") {
+                setTorrentLink(selected);
+              }
+            }}
+          >
             Select File
           </button>
           <button type="submit">Add Torrent</button>
